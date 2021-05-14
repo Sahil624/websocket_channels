@@ -28,19 +28,22 @@ func (grp *group) listenChannel() {
 
 func (grp *group) Add(conn *websocket.Conn) {
 	grp.clientMap[conn] = true
+	logger.Debug().Str("Group", grp.groupName).Int("New Count", len(grp.clientMap)).Msg("New Client Added")
 }
 
 func (grp *group) Remove(conn *websocket.Conn) bool {
 	delete(grp.clientMap, conn)
+	logger.Debug().Str("Group", grp.groupName).Int("New Count", len(grp.clientMap)).Msg("New Client Removed")
 	return len(grp.clientMap) == 0
 }
 
 func newGroup(name string) *group {
 	grp := &group{
-		groupName: name,
-		clientMap: make(map[*websocket.Conn]bool),
+		groupName:      name,
+		clientMap:      make(map[*websocket.Conn]bool),
+		messageChannel: make(chan interface{}),
 	}
-	grp.listenChannel()
+	go grp.listenChannel()
 	return grp
 }
 
@@ -69,7 +72,12 @@ func (layer *inMemoryLayer) GroupAdd(conn *websocket.Conn, groupName string) {
 		group = newGroup(groupName)
 		layer.groupMap[groupName] = group
 		group.Add(conn)
+		logger.Debug().Str("Group", groupName).Int("New Group Count", len(layer.groupMap)).Msg("New Group Created")
 	}
+}
+
+type MemoryLayerConfig struct {
+	DebugLevel bool
 }
 
 func NewMemoryLayer() ChannelLayerI {

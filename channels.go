@@ -1,6 +1,13 @@
 package websocket_channels
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog"
+	"os"
+	"time"
+)
+
+var logger zerolog.Logger
 
 type ChannelLayerI interface {
 	GroupSend(groupName string, data interface{})
@@ -10,6 +17,7 @@ type ChannelLayerI interface {
 
 type ChannelsConfig struct {
 	channelLayer ChannelLayerI
+	Debug        bool
 }
 
 type Channel struct {
@@ -27,6 +35,20 @@ func (channel *Channel) GroupSend(groupName string, data interface{}) {
 	channel.channelLayer.GroupSend(groupName, data)
 }
 
-func New(config ...ChannelsConfig) *Channel {
-	return &Channel{}
+func New(config ChannelsConfig) *Channel {
+	var channelLayer ChannelLayerI
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	logger = zerolog.New(output).With().Timestamp().Str("App", "Go Channel").Logger()
+	if config.channelLayer != nil {
+		//channelLayer =
+	} else {
+		channelLayer = NewMemoryLayer()
+	}
+	if config.Debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		logger.Warn().Msg("Debug Logger Used")
+	}
+	return &Channel{
+		channelLayer: channelLayer,
+	}
 }
